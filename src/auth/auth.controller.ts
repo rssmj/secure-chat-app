@@ -48,7 +48,7 @@ export class AuthController {
   async signup(@Body() signupDto: SignupDto) {
     try {
       const { email, password, confirmPassword } = signupDto;
-      
+
       // Validate password confirmation
       if (password !== confirmPassword) {
         throw new BadRequestException('Passwords do not match');
@@ -63,20 +63,22 @@ export class AuthController {
             emailRedirectTo: `${process.env.FRONTEND_URL}/auth/callback`,
             data: {
               email_verified: false,
-            }
-          }
+            },
+          },
         });
 
       // Handle Supabase response
       if (error) {
         this.logger.error('Supabase signup error:', error);
-        
+
         // Check for specific error cases
-        if (error.message?.includes('User already registered') || 
-            error.message?.includes('already exists')) {
+        if (
+          error.message?.includes('User already registered') ||
+          error.message?.includes('already exists')
+        ) {
           throw new ConflictException('User with this email already exists');
         }
-        
+
         throw new BadRequestException(error.message);
       }
 
@@ -90,17 +92,16 @@ export class AuthController {
         user: {
           id: data.user.id,
           email: data.user.email,
-          created_at: data.user.created_at
-        }
+          created_at: data.user.created_at,
+        },
       };
-
     } catch (error) {
       this.logger.error('Signup error:', {
         error: error.message,
         stack: error.stack,
-        name: error.name
+        name: error.name,
       });
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
@@ -119,7 +120,7 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     try {
       const { email, password } = loginDto;
-      
+
       const { data, error } = await this.supabaseService
         .getClient()
         .auth.signInWithPassword({
@@ -133,21 +134,20 @@ export class AuthController {
       }
 
       const userData = data.user;
-      
+
       return {
         message: 'Login successful',
         user: {
           id: userData.id,
           email: userData.email,
           email_confirmed_at: userData.email_confirmed_at,
-          last_sign_in_at: userData.last_sign_in_at
+          last_sign_in_at: userData.last_sign_in_at,
         },
         session: {
           access_token: data.session.access_token,
-          expires_at: data.session.expires_at
-        }
+          expires_at: data.session.expires_at,
+        },
       };
-
     } catch (error) {
       this.logger.error('Login error:', error);
       if (error instanceof UnauthorizedException) {
@@ -160,12 +160,10 @@ export class AuthController {
   @Post('resend-verification')
   async resendVerification(@Body('email') email: string) {
     try {
-      const { error } = await this.supabaseService
-        .getClient()
-        .auth.resend({
-          type: 'signup',
-          email,
-        });
+      const { error } = await this.supabaseService.getClient().auth.resend({
+        type: 'signup',
+        email,
+      });
 
       if (error) {
         this.logger.error(`Failed to resend verification: ${error.message}`);
@@ -176,7 +174,9 @@ export class AuthController {
         message: 'Verification email has been resent. Please check your inbox.',
       };
     } catch (error) {
-      throw new InternalServerErrorException('Failed to resend verification email');
+      throw new InternalServerErrorException(
+        'Failed to resend verification email',
+      );
     }
   }
 
@@ -196,12 +196,10 @@ export class AuthController {
   @Get('verify')
   async verifyEmail(@Query('token') token: string) {
     try {
-      const { error } = await this.supabaseService
-        .getClient()
-        .auth.verifyOtp({
-          token_hash: token,
-          type: 'email',
-        });
+      const { error } = await this.supabaseService.getClient().auth.verifyOtp({
+        token_hash: token,
+        type: 'email',
+      });
 
       if (error) {
         throw new BadRequestException('Invalid or expired verification link');
